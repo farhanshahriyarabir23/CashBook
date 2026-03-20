@@ -22,10 +22,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: "list.bullet", selected: "list.bullet" }} />
         <Label>Transactions</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="budget">
-        <Icon sf={{ default: "chart.pie", selected: "chart.pie.fill" }} />
-        <Label>Budget</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="goals">
         <Icon sf={{ default: "target", selected: "target" }} />
         <Label>Goals</Label>
@@ -90,18 +86,6 @@ function ClassicTabLayout() {
               <SymbolView name="list.bullet" tintColor={color} size={22} />
             ) : (
               <Feather name="list" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="budget"
-        options={{
-          title: "Budget",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="chart.pie" tintColor={color} size={22} />
-            ) : (
-              <Feather name="pie-chart" size={22} color={color} />
             ),
         }}
       />
