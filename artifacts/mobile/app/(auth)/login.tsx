@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { Toast } from "@/components/Toast";
 import { supabase } from "@/utils/supabase";
 import Colors from "@/constants/colors";
 
@@ -43,16 +44,29 @@ export default function LoginScreen() {
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
-        Alert.alert("Success", "Account created successfully! You can now log in.");
-        setIsSignIn(true);
+        
+        // If email confirmation is disabled in Supabase, data.session will exist
+        if (!data.session) {
+          Toast.show({
+            type: "success",
+            text1: "Check your email",
+            text2: "Account created successfully! Please confirm your email.",
+          });
+          setIsSignIn(true);
+        }
+        // If it does exist, AuthContext will auto-redirect them.
       }
     } catch (error: any) {
-      Alert.alert("Authentication Failed", error.message);
+      Toast.show({
+        type: "error",
+        text1: "Authentication Failed",
+        text2: error.message,
+      });
     } finally {
       setLoading(false);
     }

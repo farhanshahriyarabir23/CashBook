@@ -15,6 +15,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/Toast";
 import { FinanceProvider } from "@/context/FinanceContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
@@ -33,18 +34,16 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === ("(auth)" as string);
 
     if (!session && !inAuthGroup) {
-      // Redirect to login if unauthenticated
       router.replace("/(auth)/login" as any);
     } else if (session && inAuthGroup) {
-      // Redirect to tabs if authenticated
       router.replace("/(tabs)" as any);
     }
   }, [session, isLoading, segments]);
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#0A0A0A", justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
+      <View style={{ flex: 1, backgroundColor: "#F8FAFC", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#16A34A" />
       </View>
     );
   }
@@ -82,6 +81,7 @@ export default function RootLayout() {
               <AuthProvider>
                 <FinanceProvider>
                   <RootLayoutNav />
+                  <ToastProvider />
                 </FinanceProvider>
               </AuthProvider>
             </KeyboardProvider>

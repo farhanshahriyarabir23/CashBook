@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Toast } from "@/components/Toast";
 import Colors from "@/constants/colors";
 import { CURRENCY_SYMBOL } from "@/utils/currency";
 import { useFinance } from "@/context/FinanceContext";
@@ -429,7 +430,11 @@ export default function ProfileScreen() {
               iconColor="#475569"
               label="Privacy Policy"
               onPress={() =>
-                Alert.alert("Privacy Policy", "Your data is stored locally on your device.")
+                Toast.show({
+                  type: "success",
+                  text1: "Privacy Policy",
+                  text2: "Your data is stored locally on your device.",
+                })
               }
             />
           </View>
@@ -443,8 +448,22 @@ export default function ProfileScreen() {
               iconColor="#16A34A"
               label="Export Data"
               onPress={() =>
-                Alert.alert("Export", "Data export will be available once Supabase is connected.")
+                Toast.show({
+                  type: "success",
+                  text1: "Coming Soon",
+                  text2: "Data export will be available once cloud sync is connected.",
+                })
               }
+            />
+            <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+            <SettingRow
+              icon="trash-2"
+              iconBg="#FEE2E2"
+              iconColor="#DC2626"
+              label="Clear All Data"
+              onPress={handleClearData}
+              showChevron={false}
+              destructive
             />
             <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
             <SettingRow
@@ -458,16 +477,6 @@ export default function ProfileScreen() {
                   { text: "Sign Out", style: "destructive", onPress: signOut }
                 ]);
               }}
-            />
-            <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-            <SettingRow
-              icon="trash-2"
-              iconBg="#FEE2E2"
-              iconColor="#DC2626"
-              label="Clear All Data"
-              onPress={handleClearData}
-              showChevron={false}
-              destructive
             />
           </View>
 
