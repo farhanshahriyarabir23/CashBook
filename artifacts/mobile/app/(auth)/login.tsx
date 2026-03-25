@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -95,7 +96,12 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
           <Text style={[styles.title, { color: C.text }]}>
             {isSignIn 
               ? "Sign in with your email to continue" 
@@ -172,6 +178,7 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
