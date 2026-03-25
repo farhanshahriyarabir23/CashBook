@@ -262,6 +262,11 @@ export default function ProfileScreen() {
             if (Platform.OS !== "web") {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             }
+            Toast.show({
+              type: "success",
+              text1: "Data Cleared",
+              text2: "All your local data has been cleared.",
+            });
           },
         },
       ]
@@ -499,7 +504,18 @@ export default function ProfileScreen() {
               onPress={() => {
                 Alert.alert("Sign Out", "Are you sure you want to sign out?", [
                   { text: "Cancel", style: "cancel" },
-                  { text: "Sign Out", style: "destructive", onPress: signOut }
+                  { 
+                    text: "Sign Out", 
+                    style: "destructive", 
+                    onPress: () => {
+                      Toast.show({
+                        type: "info",
+                        text1: "Signing Out",
+                        text2: "You have been fully signed out.",
+                      });
+                      signOut();
+                    }
+                  }
                 ]);
               }}
             />
