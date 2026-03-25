@@ -146,37 +146,46 @@ export default function OverviewScreen() {
               <Text style={[styles.sectionLink, { color: C.tint }]}>This month</Text>
             </View>
             <Card>
-              {topBudgets.map((budget, idx) => {
-                const progress = budget.spent / budget.limit;
-                const isOver = progress > 1;
-                return (
-                  <View key={budget.id}>
-                    {idx > 0 && <View style={[styles.itemDivider, { backgroundColor: C.borderLight }]} />}
-                    <View style={styles.budgetRow}>
-                      <View style={styles.budgetLeft}>
-                        <View style={[styles.budgetDot, { backgroundColor: budget.color }]} />
-                        <Text style={[styles.budgetName, { color: C.text }]}>
-                          {budget.category.charAt(0).toUpperCase() + budget.category.slice(1)}
+              {topBudgets.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Feather name="pie-chart" size={32} color={C.textTertiary} />
+                  <Text style={[styles.emptyText, { color: C.textSecondary }]}>
+                    No budgets yet
+                  </Text>
+                </View>
+              ) : (
+                topBudgets.map((budget, idx) => {
+                  const progress = budget.spent / budget.limit;
+                  const isOver = progress > 1;
+                  return (
+                    <View key={budget.id}>
+                      {idx > 0 && <View style={[styles.itemDivider, { backgroundColor: C.borderLight }]} />}
+                      <View style={styles.budgetRow}>
+                        <View style={styles.budgetLeft}>
+                          <View style={[styles.budgetDot, { backgroundColor: budget.color }]} />
+                          <Text style={[styles.budgetName, { color: C.text }]}>
+                            {budget.category.charAt(0).toUpperCase() + budget.category.slice(1)}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.budgetAmount,
+                            { color: isOver ? C.expense : C.textSecondary },
+                          ]}
+                        >
+                          {formatAmount(budget.spent)} / {formatAmount(budget.limit)}
                         </Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.budgetAmount,
-                          { color: isOver ? C.expense : C.textSecondary },
-                        ]}
-                      >
-                        {formatAmount(budget.spent)} / {formatAmount(budget.limit)}
-                      </Text>
+                      <ProgressBar
+                        progress={progress}
+                        color={isOver ? C.expense : budget.color}
+                        height={5}
+                        style={{ marginTop: 6, marginBottom: 4 }}
+                      />
                     </View>
-                    <ProgressBar
-                      progress={progress}
-                      color={isOver ? C.expense : budget.color}
-                      height={5}
-                      style={{ marginTop: 6, marginBottom: 4 }}
-                    />
-                  </View>
-                );
-              })}
+                  );
+                })
+              )}
             </Card>
           </View>
 
