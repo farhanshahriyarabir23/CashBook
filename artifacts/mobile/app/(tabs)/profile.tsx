@@ -24,6 +24,15 @@ import { supabase } from "@/utils/supabase";
 
 const C = Colors.light;
 
+function splitDisplayName(displayName: string) {
+  const [firstName, ...rest] = displayName.trim().split(/\s+/);
+
+  return {
+    firstName: firstName || "",
+    lastName: rest.join(" ") || null,
+  };
+}
+
 type SettingRowProps = {
   icon: string;
   iconBg: string;
@@ -519,9 +528,37 @@ export default function ProfileScreen() {
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
+          const nextMetadata = {
+            ...(user?.user_metadata ?? {}),
+            displayName: n,
+            university: u,
+            major: m,
+          };
+
           await supabase.auth.updateUser({
-            data: { displayName: n, university: u, major: m }
+            data: {
+              ...nextMetadata,
+            }
           });
+
+          if (user?.id) {
+            const { firstName, lastName } = splitDisplayName(n);
+            await supabase.from("profiles").upsert(
+              {
+                id: user.id,
+                first_name: firstName,
+                last_name: lastName,
+                phone: nextMetadata.phone ?? null,
+                date_of_birth: nextMetadata.dob ?? null,
+                occupation: nextMetadata.occupation ?? null,
+                university: u || null,
+                major: m || null,
+                position: nextMetadata.position ?? null,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "id" }
+            );
+          }
         }}
         onClose={() => setShowEditModal(false)}
       />

@@ -12,6 +12,15 @@ import { useAuth } from "@/context/AuthContext";
 
 const C = Colors.light;
 
+function splitDisplayName(displayName: string) {
+  const [firstName, ...rest] = displayName.trim().split(/\s+/);
+
+  return {
+    firstName: firstName || "",
+    lastName: rest.join(" ") || null,
+  };
+}
+
 export default function Step4Screen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -53,6 +62,7 @@ export default function Step4Screen() {
 
       // Push all accumulated OnboardingData to Supabase user_metadata
       const metadata = {
+        ...(currentUser.user_metadata ?? {}),
         displayName: data.name,
         phone: data.phone,
         dob: data.dob,
@@ -67,6 +77,25 @@ export default function Step4Screen() {
       });
 
       if (error) throw error;
+
+      const { firstName, lastName } = splitDisplayName(data.name);
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        {
+          id: currentUser.id,
+          first_name: firstName,
+          last_name: lastName,
+          phone: data.phone,
+          date_of_birth: data.dob,
+          occupation,
+          university: occupation === "Student" ? university : null,
+          major: occupation === "Student" ? major : null,
+          position: occupation === "Service" ? position : null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+
+      if (profileError) throw profileError;
       
       // Update successful. RootLayoutNav will detect updated `user_metadata` or we can explicitly route.
       router.replace("/(tabs)");
