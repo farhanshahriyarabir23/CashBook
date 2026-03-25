@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -114,22 +114,39 @@ function SectionHeader({ title }: { title: string }) {
 function EditProfileModal({
   visible,
   name,
+  occupation,
   university,
   major,
+  position,
   onSave,
   onClose,
 }: {
   visible: boolean;
   name: string;
+  occupation: string;
   university: string;
   major: string;
-  onSave: (n: string, u: string, m: string) => void;
+  position: string;
+  onSave: (n: string, u: string, m: string, p: string) => void;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [n, setN] = useState(name);
   const [u, setU] = useState(university);
   const [m, setM] = useState(major);
+  const [p, setP] = useState(position);
+
+  const isStudent = occupation === "Student";
+
+  // Sync modal state when it opens or props change
+  useEffect(() => {
+    if (visible) {
+      setN(name);
+      setU(university);
+      setM(major);
+      setP(position);
+    }
+  }, [visible, name, university, major, position]);
 
   return (
     <Modal
@@ -150,7 +167,7 @@ function EditProfileModal({
           </Text>
           <Pressable
             onPress={() => {
-              onSave(n, u, m);
+              onSave(n, u, m, p);
               onClose();
             }}
           >
@@ -189,41 +206,65 @@ function EditProfileModal({
             placeholderTextColor={C.textTertiary}
           />
 
-          <Text style={[styles.fieldLabel, { color: C.textSecondary, marginTop: 16 }]}>
-            University
-          </Text>
-          <TextInput
-            style={[
-              styles.fieldInput,
-              {
-                borderColor: C.border,
-                color: C.text,
-                backgroundColor: C.backgroundSecondary,
-              },
-            ]}
-            value={u}
-            onChangeText={setU}
-            placeholder="Your university"
-            placeholderTextColor={C.textTertiary}
-          />
+          {isStudent ? (
+            <>
+              <Text style={[styles.fieldLabel, { color: C.textSecondary, marginTop: 16 }]}>
+                University
+              </Text>
+              <TextInput
+                style={[
+                  styles.fieldInput,
+                  {
+                    borderColor: C.border,
+                    color: C.text,
+                    backgroundColor: C.backgroundSecondary,
+                  },
+                ]}
+                value={u}
+                onChangeText={setU}
+                placeholder="Your university"
+                placeholderTextColor={C.textTertiary}
+              />
 
-          <Text style={[styles.fieldLabel, { color: C.textSecondary, marginTop: 16 }]}>
-            Major / Department
-          </Text>
-          <TextInput
-            style={[
-              styles.fieldInput,
-              {
-                borderColor: C.border,
-                color: C.text,
-                backgroundColor: C.backgroundSecondary,
-              },
-            ]}
-            value={m}
-            onChangeText={setM}
-            placeholder="e.g. Computer Science"
-            placeholderTextColor={C.textTertiary}
-          />
+              <Text style={[styles.fieldLabel, { color: C.textSecondary, marginTop: 16 }]}>
+                Major / Department
+              </Text>
+              <TextInput
+                style={[
+                  styles.fieldInput,
+                  {
+                    borderColor: C.border,
+                    color: C.text,
+                    backgroundColor: C.backgroundSecondary,
+                  },
+                ]}
+                value={m}
+                onChangeText={setM}
+                placeholder="e.g. Computer Science"
+                placeholderTextColor={C.textTertiary}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={[styles.fieldLabel, { color: C.textSecondary, marginTop: 16 }]}>
+                Position / Title
+              </Text>
+              <TextInput
+                style={[
+                  styles.fieldInput,
+                  {
+                    borderColor: C.border,
+                    color: C.text,
+                    backgroundColor: C.backgroundSecondary,
+                  },
+                ]}
+                value={p}
+                onChangeText={setP}
+                placeholder="e.g. Software Engineer"
+                placeholderTextColor={C.textTertiary}
+              />
+            </>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -239,10 +280,22 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
 
   const metadata = user?.user_metadata || {};
+  const occupation: string = metadata.occupation || "";
+  const isStudent = occupation === "Student";
   const initialDisplayName = getDisplayName(user);
   const [name, setName] = useState(initialDisplayName);
-  const [university, setUniversity] = useState(metadata.university || "University of Dhaka");
-  const [major, setMajor] = useState(metadata.major || "Computer Science");
+  const [university, setUniversity] = useState(metadata.university || "");
+  const [major, setMajor] = useState(metadata.major || "");
+  const [position, setPosition] = useState(metadata.position || "");
+
+  // Sync profile state when auth user object changes
+  useEffect(() => {
+    const meta = user?.user_metadata || {};
+    setName(getDisplayName(user));
+    setUniversity(meta.university || "");
+    setMajor(meta.major || "");
+    setPosition(meta.position || "");
+  }, [user]);
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -302,12 +355,31 @@ export default function ProfileScreen() {
                 <Text style={[styles.profileName, { color: C.text }]}>
                   {name}
                 </Text>
-                <Text style={[styles.profileUniversity, { color: C.textSecondary }]}>
-                  {university}
-                </Text>
-                <Text style={[styles.profileMajor, { color: C.textTertiary }]}>
-                  {major}
-                </Text>
+                {isStudent ? (
+                  <>
+                    {university ? (
+                      <Text style={[styles.profileUniversity, { color: C.textSecondary }]}>
+                        {university}
+                      </Text>
+                    ) : null}
+                    {major ? (
+                      <Text style={[styles.profileMajor, { color: C.textTertiary }]}>
+                        {major}
+                      </Text>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    {position ? (
+                      <Text style={[styles.profileUniversity, { color: C.textSecondary }]}>
+                        {position}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.profileMajor, { color: C.textTertiary }]}>
+                      Service Professional
+                    </Text>
+                  </>
+                )}
               </View>
               <Pressable
                 onPress={() => setShowEditModal(true)}
@@ -549,45 +621,69 @@ export default function ProfileScreen() {
       <EditProfileModal
         visible={showEditModal}
         name={name}
+        occupation={occupation}
         university={university}
         major={major}
-        onSave={async (n, u, m) => {
-          setName(n);
-          setUniversity(u);
-          setMajor(m);
-          if (Platform.OS !== "web") {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-          const nextMetadata: Record<string, any> = {
-            ...(user?.user_metadata ?? {}),
-            displayName: n,
-            university: u,
-            major: m,
-          };
+        position={position}
+        onSave={async (n, u, m, p) => {
+          try {
+            const nextMetadata: Record<string, any> = {
+              ...(user?.user_metadata ?? {}),
+              displayName: n,
+              university: isStudent ? u : null,
+              major: isStudent ? m : null,
+              position: !isStudent ? p : null,
+            };
 
-          await supabase.auth.updateUser({
-            data: {
-              ...nextMetadata,
+            await supabase.auth.updateUser({
+              data: {
+                ...nextMetadata,
+              }
+            });
+
+            if (user?.id) {
+              const { firstName, lastName } = splitDisplayName(n);
+              await supabase.from("profiles").upsert(
+                {
+                  id: user.id,
+                  first_name: firstName,
+                  last_name: lastName,
+                  phone: nextMetadata.phone ?? null,
+                  date_of_birth: nextMetadata.dob ?? null,
+                  occupation: occupation,
+                  university: isStudent ? u : null,
+                  major: isStudent ? m : null,
+                  position: !isStudent ? p : null,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "id" }
+              );
             }
-          });
 
-          if (user?.id) {
-            const { firstName, lastName } = splitDisplayName(n);
-            await supabase.from("profiles").upsert(
-              {
-                id: user.id,
-                first_name: firstName,
-                last_name: lastName,
-                phone: nextMetadata.phone ?? null,
-                date_of_birth: nextMetadata.dob ?? null,
-                occupation: nextMetadata.occupation ?? null,
-                university: u || null,
-                major: m || null,
-                position: nextMetadata.position ?? null,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "id" }
-            );
+            // Only update local state after successful save
+            setName(n);
+            if (isStudent) {
+              setUniversity(u);
+              setMajor(m);
+            } else {
+              setPosition(p);
+            }
+
+            if (Platform.OS !== "web") {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+            Toast.show({
+              type: "success",
+              text1: "Profile Updated",
+              text2: "Your changes have been saved.",
+            });
+          } catch (err) {
+            console.error("Failed to update profile:", err);
+            Toast.show({
+              type: "error",
+              text1: "Update Failed",
+              text2: "Could not save your profile. Please try again.",
+            });
           }
         }}
         onClose={() => setShowEditModal(false)}
