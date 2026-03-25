@@ -558,7 +558,7 @@ export default function ProfileScreen() {
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
-          const nextMetadata = {
+          const nextMetadata: Record<string, any> = {
             ...(user?.user_metadata ?? {}),
             displayName: n,
             university: u,
