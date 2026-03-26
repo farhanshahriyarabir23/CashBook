@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
+import { Toast } from "@/components/Toast";
 import {
   TransactionCategory,
   useFinance,
@@ -50,7 +51,7 @@ export function AddTransactionSheet({ visible, onClose }: Props) {
   const [category, setCategory] = useState<TransactionCategory>("food");
   const [note, setNote] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!amount || !title) {
       Alert.alert("Missing info", "Please enter both a title and an amount.");
       return;
@@ -63,19 +64,28 @@ export function AddTransactionSheet({ visible, onClose }: Props) {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    addTransaction({
-      title,
-      amount: parsed,
-      type,
-      category: type === "income" ? "income" : category,
-      date: new Date().toISOString(),
-      note: note || undefined,
-    });
-    setAmount("");
-    setTitle("");
-    setNote("");
-    setCategory("food");
-    onClose();
+
+    try {
+      await addTransaction({
+        title,
+        amount: parsed,
+        type,
+        category: type === "income" ? "income" : category,
+        date: new Date().toISOString(),
+        note: note || undefined,
+      });
+      setAmount("");
+      setTitle("");
+      setNote("");
+      setCategory("food");
+      onClose();
+    } catch (_err) {
+      Toast.show({
+        type: "error",
+        text1: "Save Failed",
+        text2: "Could not save the transaction. Check Supabase setup and try again.",
+      });
+    }
   };
 
   return (

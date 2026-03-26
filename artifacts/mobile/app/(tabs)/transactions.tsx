@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
+import { Toast } from "@/components/Toast";
 import { formatAmount } from "@/utils/currency";
 import { AddTransactionSheet } from "@/components/AddTransactionSheet";
 import { TransactionItem } from "@/components/TransactionItem";
@@ -72,11 +73,19 @@ export default function TransactionsScreen() {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
           if (Platform.OS !== "web") {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
-          deleteTransaction(id);
+          try {
+            await deleteTransaction(id);
+          } catch (_err) {
+            Toast.show({
+              type: "error",
+              text1: "Delete Failed",
+              text2: "Could not delete the transaction. Please try again.",
+            });
+          }
         },
       },
     ]);

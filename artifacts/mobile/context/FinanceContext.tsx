@@ -20,6 +20,7 @@ import {
   type ApiBudget,
   type ApiSavingGoal,
 } from "@/utils/api";
+import { useAuth } from "@/context/AuthContext";
 
 export type TransactionCategory =
   | "food"
@@ -64,13 +65,13 @@ type FinanceContextType = {
   transactions: Transaction[];
   budgets: Budget[];
   savingGoals: SavingGoal[];
-  addTransaction: (t: Omit<Transaction, "id">) => void;
-  deleteTransaction: (id: string) => void;
-  updateBudget: (id: string, spent: number) => void;
-  addSavingGoal: (g: Omit<SavingGoal, "id">) => void;
-  editSavingGoal: (id: string, data: Partial<Omit<SavingGoal, "id">>) => void;
-  updateSavingGoal: (id: string, savedAmount: number) => void;
-  deleteSavingGoal: (id: string) => void;
+  addTransaction: (t: Omit<Transaction, "id">) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  updateBudget: (id: string, spent: number) => Promise<void>;
+  addSavingGoal: (g: Omit<SavingGoal, "id">) => Promise<void>;
+  editSavingGoal: (id: string, data: Partial<Omit<SavingGoal, "id">>) => Promise<void>;
+  updateSavingGoal: (id: string, savedAmount: number) => Promise<void>;
+  deleteSavingGoal: (id: string) => Promise<void>;
   totalBalance: number;
   monthlyIncome: number;
   monthlyExpense: number;
@@ -80,15 +81,27 @@ type FinanceContextType = {
 const FinanceContext = createContext<FinanceContextType | null>(null);
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch all data from the API on mount
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!user) {
+      setTransactions([]);
+      setBudgets([]);
+      setSavingGoals([]);
+      setIsLoading(false);
+      return;
+    }
+
+    void loadData();
+  }, [user?.id, isAuthLoading]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -102,7 +115,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setBudgets(budgetData as Budget[]);
       setSavingGoals(goalData as SavingGoal[]);
     } catch (err) {
-      console.error("Failed to load data from API:", err);
+      console.error("Failed to load data from Supabase:", err);
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +128,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         setTransactions((prev) => [created as Transaction, ...prev]);
       } catch (err) {
         console.error("Failed to create transaction:", err);
+        throw err;
       }
     },
     []
@@ -127,6 +141,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
       } catch (err) {
         console.error("Failed to delete transaction:", err);
+        throw err;
       }
     },
     []
@@ -141,6 +156,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         );
       } catch (err) {
         console.error("Failed to update budget:", err);
+        throw err;
       }
     },
     []

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
+import { Toast } from "@/components/Toast";
 import { formatAmount } from "@/utils/currency";
 import { AddTransactionSheet } from "@/components/AddTransactionSheet";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -124,6 +125,18 @@ export default function OverviewScreen() {
   const recentTransactions = transactions.slice(0, 5);
   const topBudgets = budgets.slice(0, 3);
 
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await deleteTransaction(id);
+    } catch (_err) {
+      Toast.show({
+        type: "error",
+        text1: "Delete Failed",
+        text2: "Could not delete the transaction. Please try again.",
+      });
+    }
+  };
+
   return (
     <>
       <ScrollView
@@ -207,7 +220,7 @@ export default function OverviewScreen() {
                     {idx > 0 && <View style={[styles.itemDivider, { backgroundColor: C.borderLight }]} />}
                     <TransactionItem
                       transaction={t}
-                      onDelete={deleteTransaction}
+                      onDelete={handleDeleteTransaction}
                     />
                   </View>
                 ))
