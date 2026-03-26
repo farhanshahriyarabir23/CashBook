@@ -22,6 +22,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppLock } from "@/context/AppLockContext";
 import { formatAmount } from "@/utils/currency";
 import { supabase } from "@/utils/supabase";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 const C = Colors.light;
 
@@ -277,7 +279,7 @@ export default function ProfileScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 + 34 : insets.bottom + 80;
 
-  const { totalBalance, monthlyIncome, monthlyExpense, transactions } = useFinance();
+  const { totalBalance, monthlyIncome, monthlyExpense, transactions, savingGoals, clearAllData } = useFinance();
   const { user, signOut } = useAuth();
 
   const metadata = user?.user_metadata || {};
@@ -298,6 +300,9 @@ export default function ProfileScreen() {
     setPosition(meta.position || "");
   }, [user]);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [weeklyReport, setWeeklyReport] = useState(true);
@@ -306,27 +311,123 @@ export default function ProfileScreen() {
   const { isAppLockEnabled, toggleAppLock, isBiometricAvailable } = useAppLock();
 
   const handleClearData = () => {
-    Alert.alert(
-      "Clear All Data",
-      "This will permanently delete all your transactions and goals. This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear Data",
-          style: "destructive",
-          onPress: () => {
-            if (Platform.OS !== "web") {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            }
-            Toast.show({
-              type: "success",
-              text1: "Data Cleared",
-              text2: "All your local data has been cleared.",
-            });
-          },
-        },
-      ]
-    );
+    setShowClearModal(true);
+  };
+
+  const confirmClearData = async () => {
+    setIsClearing(true);
+    try {
+      await clearAllData();
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Toast.show({
+        type: "success",
+        text1: "Data Cleared",
+        text2: "All your transactions and goals have been permanently deleted.",
+      });
+    } catch (_err) {
+      Toast.show({
+        type: "error",
+        text1: "Clear Failed",
+        text2: "Could not clear your data. Please try again.",
+      });
+    } finally {
+      setIsClearing(false);
+      setShowClearModal(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    try {
+      const html = `
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+            <style>
+              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #0F172A; }
+              h1 { color: #16A34A; margin-bottom: 5px; }
+              h2 { font-weight: normal; color: #475569; margin-top: 0; }
+              p { color: #64748B; font-size: 14px; }
+              .header { border-bottom: 2px solid #E2E8F0; padding-bottom: 20px; margin-bottom: 30px; }
+              .summary { display: flex; justify-content: space-between; background: #F8FAFC; padding: 20px; border-radius: 12px; margin-bottom: 30px; }
+              .stat { text-align: left; }
+              .stat-label { font-size: 14px; color: #64748B; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+              .stat-value { font-size: 24px; font-weight: bold; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 15px; }
+              th, td { text-align: left; padding: 12px; border-bottom: 1px solid #E2E8F0; }
+              th { background-color: #F8FAFC; color: #475569; font-weight: 600; }
+              .income { color: #16A34A; }
+              .expense { color: #DC2626; }
+              .amount-cell { text-align: right; font-variant-numeric: tabular-nums; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>CashBook</h1>
+              <h2>Financial Report – ${name}</h2>
+              <p>Generated on ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <div class="summary">
+              <div class="stat">
+                <div class="stat-label">Total Balance</div>
+                <div class="stat-value" style="color: ${totalBalance >= 0 ? '#16A34A' : '#DC2626'}">${formatAmount(totalBalance)}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Monthly Income</div>
+                <div class="stat-value income">${formatAmount(monthlyIncome)}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Monthly Expense</div>
+                <div class="stat-value expense">${formatAmount(monthlyExpense)}</div>
+              </div>
+            </div>
+
+            <h3>Transaction History</h3>
+            <table>
+              <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th style="text-align: right">Amount</th>
+              </tr>
+              ${transactions.length === 0 ? '<tr><td colspan="4" style="text-align: center; color: #94A3B8; padding: 30px;">No transactions found</td></tr>' : transactions.map(t => `
+                <tr>
+                  <td>${new Date(t.date).toLocaleDateString()}</td>
+                  <td>${t.title}</td>
+                  <td><span style="background: #F1F5F9; padding: 4px 8px; border-radius: 6px; font-size: 13px; color: #475569;">${t.category}</span></td>
+                  <td class="amount-cell ${t.type}">${t.type === 'income' ? '+' : '-'}${formatAmount(t.amount)}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Download Financial Report',
+          UTI: 'com.adobe.pdf'
+        });
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "Export Ready",
+          text2: "PDF generated but sharing is not available on this device. File saved to: " + uri,
+        });
+      }
+    } catch (error) {
+      console.error("PDF Export error:", error);
+      Toast.show({
+        type: "error",
+        text1: "Export Failed",
+        text2: "Could not generate your PDF report.",
+      });
+    }
   };
 
   const txCount = transactions.length;
@@ -544,7 +645,7 @@ export default function ProfileScreen() {
                 Toast.show({
                   type: "success",
                   text1: "Privacy Policy",
-                  text2: "Your data is stored locally on your device.",
+                  text2: "No data is shared with any third party. Your data is biometric protected.",
                 })
               }
             />
@@ -557,14 +658,8 @@ export default function ProfileScreen() {
               icon="download"
               iconBg="#DCFCE7"
               iconColor="#16A34A"
-              label="Export Data"
-              onPress={() =>
-                Toast.show({
-                  type: "success",
-                  text1: "Coming Soon",
-                  text2: "Data export will be available once cloud sync is connected.",
-                })
-              }
+              label="Export PDF"
+              onPress={exportToPDF}
             />
             <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
             <SettingRow
@@ -582,23 +677,7 @@ export default function ProfileScreen() {
               iconBg="#FEE2E2"
               iconColor="#DC2626"
               label="Sign Out"
-              onPress={() => {
-                Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Sign Out",
-                    style: "destructive",
-                    onPress: () => {
-                      Toast.show({
-                        type: "info",
-                        text1: "Signing Out",
-                        text2: "You have been fully signed out.",
-                      });
-                      signOut();
-                    }
-                  }
-                ]);
-              }}
+              onPress={() => setShowSignOutModal(true)}
             />
           </View>
 
@@ -626,6 +705,155 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Clear Data Confirmation Modal */}
+      <Modal
+        visible={showClearModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isClearing && setShowClearModal(false)}
+      >
+        <View style={clearStyles.overlay}>
+          <Pressable
+            style={clearStyles.backdropTouch}
+            onPress={() => !isClearing && setShowClearModal(false)}
+          />
+          <View style={[clearStyles.card, { backgroundColor: C.backgroundCard }]}>
+            {/* Warning Icon */}
+            <View style={clearStyles.iconCircle}>
+              <Feather name="alert-triangle" size={32} color="#fff" />
+            </View>
+
+            <Text style={[clearStyles.title, { color: C.text }]}>
+              Clear All Data?
+            </Text>
+            <Text style={[clearStyles.description, { color: C.textSecondary }]}>
+              This will permanently delete{"\n"}
+              <Text style={{ fontFamily: "Inter_600SemiBold", color: C.text }}>
+                {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
+              </Text>
+              {" and "}
+              <Text style={{ fontFamily: "Inter_600SemiBold", color: C.text }}>
+                {savingGoals.length} goal{savingGoals.length !== 1 ? "s" : ""}
+              </Text>
+              {" from your account."}
+            </Text>
+
+            <View style={clearStyles.warningBadge}>
+              <Feather name="info" size={14} color="#DC2626" />
+              <Text style={clearStyles.warningText}>
+                This action cannot be undone
+              </Text>
+            </View>
+
+            {/* Buttons */}
+            <View style={clearStyles.btnRow}>
+              <Pressable
+                onPress={() => setShowClearModal(false)}
+                disabled={isClearing}
+                style={({ pressed }) => [
+                  clearStyles.btnCancel,
+                  { borderColor: C.border },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[clearStyles.btnCancelText, { color: C.text }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmClearData}
+                disabled={isClearing}
+                style={({ pressed }) => [
+                  clearStyles.btnDelete,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                  isClearing && { opacity: 0.6 },
+                ]}
+              >
+                {isClearing ? (
+                  <Text style={clearStyles.btnDeleteText}>Deleting...</Text>
+                ) : (
+                  <>
+                    <Feather name="trash-2" size={16} color="#fff" />
+                    <Text style={clearStyles.btnDeleteText}>Delete All</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sign Out Confirmation Modal */}
+      <Modal
+        visible={showSignOutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSignOutModal(false)}
+      >
+        <View style={signOutStyles.overlay}>
+          <Pressable
+            style={signOutStyles.backdropTouch}
+            onPress={() => setShowSignOutModal(false)}
+          />
+          <View style={[signOutStyles.card, { backgroundColor: C.backgroundCard }]}>
+            {/* Icon */}
+            <View style={signOutStyles.iconCircle}>
+              <Feather name="log-out" size={28} color="#fff" />
+            </View>
+
+            <Text style={[signOutStyles.title, { color: C.text }]}>
+              Sign Out?
+            </Text>
+            <Text style={[signOutStyles.description, { color: C.textSecondary }]}>
+              You are currently signed in as{"\n"}
+              <Text style={{ fontFamily: "Inter_600SemiBold", color: C.text }}>
+                {user?.email || "your account"}
+              </Text>
+            </Text>
+
+            <View style={signOutStyles.infoBadge}>
+              <Feather name="shield" size={14} color="#16A34A" />
+              <Text style={signOutStyles.infoText}>
+                Your data will be saved securely
+              </Text>
+            </View>
+
+            {/* Buttons */}
+            <View style={signOutStyles.btnRow}>
+              <Pressable
+                onPress={() => setShowSignOutModal(false)}
+                style={({ pressed }) => [
+                  signOutStyles.btnCancel,
+                  { borderColor: C.border },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[signOutStyles.btnCancelText, { color: C.text }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setShowSignOutModal(false);
+                  if (Platform.OS !== "web") {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                  Toast.show({
+                    type: "info",
+                    text1: "Signing Out",
+                    text2: "You have been fully signed out.",
+                  });
+                  signOut();
+                }}
+                style={({ pressed }) => [
+                  signOutStyles.btnSignOut,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                ]}
+              >
+                <Feather name="log-out" size={16} color="#fff" />
+                <Text style={signOutStyles.btnSignOutText}>Sign Out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <EditProfileModal
         visible={showEditModal}
@@ -894,5 +1122,215 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     fontFamily: "Inter_400Regular",
+  },
+});
+
+const clearStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+  },
+  backdropTouch: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  card: {
+    width: "100%",
+    borderRadius: 24,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#DC2626",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  description: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+  warningBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 24,
+  },
+  warningText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#DC2626",
+  },
+  btnRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  btnCancel: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnCancelText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  btnDelete: {
+    flex: 1,
+    backgroundColor: "#DC2626",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  btnDeleteText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
+  },
+});
+
+const signOutStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+  },
+  backdropTouch: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  card: {
+    width: "100%",
+    borderRadius: 24,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#475569",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    shadowColor: "#475569",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  description: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+  infoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 24,
+  },
+  infoText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#16A34A",
+  },
+  btnRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  btnCancel: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnCancelText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  btnSignOut: {
+    flex: 1,
+    backgroundColor: "#DC2626",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  btnSignOutText: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
   },
 });

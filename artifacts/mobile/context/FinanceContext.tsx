@@ -72,6 +72,7 @@ type FinanceContextType = {
   editSavingGoal: (id: string, data: Partial<Omit<SavingGoal, "id">>) => Promise<void>;
   updateSavingGoal: (id: string, savedAmount: number) => Promise<void>;
   deleteSavingGoal: (id: string) => Promise<void>;
+  clearAllData: () => Promise<void>;
   totalBalance: number;
   monthlyIncome: number;
   monthlyExpense: number;
@@ -218,6 +219,25 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const clearAllData = useCallback(async () => {
+    try {
+      // Delete all transactions
+      for (const t of transactions) {
+        await apiDeleteTransaction(t.id);
+      }
+      // Delete all goals
+      for (const g of savingGoals) {
+        await apiDeleteGoal(g.id);
+      }
+      // Clear local state
+      setTransactions([]);
+      setSavingGoals([]);
+    } catch (err) {
+      console.error("Failed to clear all data:", err);
+      throw err;
+    }
+  }, [transactions, savingGoals]);
+
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -254,6 +274,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         editSavingGoal,
         updateSavingGoal,
         deleteSavingGoal,
+        clearAllData,
         totalBalance,
         monthlyIncome,
         monthlyExpense,

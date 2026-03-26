@@ -119,11 +119,11 @@ export default function OverviewScreen() {
   const bottomPad = Platform.OS === "web" ? 84 + 34 : insets.bottom + 80;
   const [showAddSheet, setShowAddSheet] = useState(false);
   const { user } = useAuth();
-  const { transactions, budgets, totalBalance, monthlyIncome, monthlyExpense, deleteTransaction } = useFinance();
+  const { transactions, savingGoals, totalBalance, monthlyIncome, monthlyExpense, deleteTransaction } = useFinance();
   const displayName = getDisplayName(user);
 
   const recentTransactions = transactions.slice(0, 5);
-  const topBudgets = budgets.slice(0, 3);
+  const topGoals = savingGoals.slice(0, 3);
 
   const handleDeleteTransaction = async (id: string) => {
     try {
@@ -153,54 +153,60 @@ export default function OverviewScreen() {
         />
 
         <View style={styles.body}>
-          {/* <View style={styles.section}>
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: C.text }]}>Budget Overview</Text>
-              <Text style={[styles.sectionLink, { color: C.tint }]}>This month</Text>
+              <Text style={[styles.sectionTitle, { color: C.text }]}>Active Goals</Text>
             </View>
             <Card>
-              {topBudgets.length === 0 ? (
+              {topGoals.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Feather name="pie-chart" size={32} color={C.textTertiary} />
+                  <Feather name="target" size={32} color={C.textTertiary} />
                   <Text style={[styles.emptyText, { color: C.textSecondary }]}>
-                    No budgets yet
+                    No active goals
                   </Text>
                 </View>
               ) : (
-                topBudgets.map((budget, idx) => {
-                  const progress = budget.spent / budget.limit;
-                  const isOver = progress > 1;
+                topGoals.map((goal, idx) => {
+                  const progress = Math.min(goal.savedAmount / goal.targetAmount, 1);
+                  const isCompleted = progress >= 1;
                   return (
-                    <View key={budget.id}>
+                    <View key={goal.id}>
                       {idx > 0 && <View style={[styles.itemDivider, { backgroundColor: C.borderLight }]} />}
-                      <View style={styles.budgetRow}>
-                        <View style={styles.budgetLeft}>
-                          <View style={[styles.budgetDot, { backgroundColor: budget.color }]} />
-                          <Text style={[styles.budgetName, { color: C.text }]}>
-                            {budget.category.charAt(0).toUpperCase() + budget.category.slice(1)}
+                      <View style={styles.goalRow}>
+                        <View style={styles.goalLeft}>
+                          <View style={[styles.goalEmojiWrap, { backgroundColor: goal.color + "20" }]}>
+                            <Text style={styles.goalEmoji}>{goal.emoji}</Text>
+                          </View>
+                          <Text style={[styles.goalTitle, { color: C.text }]}>
+                            {goal.title}
                           </Text>
                         </View>
-                        <Text
-                          style={[
-                            styles.budgetAmount,
-                            { color: isOver ? C.expense : C.textSecondary },
-                          ]}
-                        >
-                          {formatAmount(budget.spent)} / {formatAmount(budget.limit)}
-                        </Text>
+                        <View style={styles.goalAmounts}>
+                          <Text
+                            style={[
+                              styles.goalAmount,
+                              { color: isCompleted ? C.income : C.text },
+                            ]}
+                          >
+                            {formatAmount(goal.savedAmount)}
+                          </Text>
+                          <Text style={[styles.goalTarget, { color: C.textTertiary }]}>
+                            of {formatAmount(goal.targetAmount)}
+                          </Text>
+                        </View>
                       </View>
                       <ProgressBar
                         progress={progress}
-                        color={isOver ? C.expense : budget.color}
-                        height={5}
-                        style={{ marginTop: 6, marginBottom: 4 }}
+                        color={isCompleted ? C.income : goal.color}
+                        height={6}
+                        style={{ marginTop: 8, marginBottom: 4 }}
                       />
                     </View>
                   );
                 })
               )}
             </Card>
-          </View> */}
+          </View>
 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -433,6 +439,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 24,
     gap: 8,
+  },
+  goalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  goalLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  goalEmojiWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  goalEmoji: {
+    fontSize: 18,
+  },
+  goalTitle: {
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  goalAmounts: {
+    alignItems: "flex-end",
+  },
+  goalAmount: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  goalTarget: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
   emptyText: {
     fontSize: 14,
