@@ -16,7 +16,13 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {},
+    "android": {
+      "package": "com.farhanshahriyar.cashbook",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -34,6 +40,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1efffe49-30a7-4f7a-a0fd-bd4321c460b2"
+      }
+    },
+    "owner": "farhanshahriyarabir23"
   }
 }

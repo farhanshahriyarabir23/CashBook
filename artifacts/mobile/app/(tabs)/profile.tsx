@@ -705,6 +705,18 @@ export default function ProfileScreen() {
               }
             />
           </View>
+          {/* App Version */}
+          <Text style={{
+            textAlign: 'center',
+            marginTop: 32,
+            marginBottom: 16,
+            fontSize: 13,
+            fontFamily: 'Inter_500Medium',
+            color: C.textTertiary
+          }}>
+            Initial Release Version 0.0.9
+          </Text>
+
         </View>
       </ScrollView>
 
@@ -856,6 +868,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
 
       {/* Features Modal */}
       <Modal
@@ -1506,3 +1519,4 @@ const featuresStyles = StyleSheet.create({
     color: "#fff",
   },
 });
+

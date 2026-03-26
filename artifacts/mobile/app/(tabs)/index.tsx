@@ -2,11 +2,13 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +22,7 @@ import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useFinance } from "@/context/FinanceContext";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/utils/supabase";
 
 const C = Colors.light;
 
@@ -50,7 +53,11 @@ function BalanceCard({
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const avatarInitial = getAvatarInitial(displayName);
   const { signOut } = useAuth();
-  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showAccountSheet, setShowAccountSheet] = useState(false);
+  const [accountView, setAccountView] = useState<'menu' | 'password' | 'email' | 'delete'>('menu');
+  const [newPassword, setNewPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [accountLoading, setAccountLoading] = useState(false);
 
   return (
     <View style={[styles.balanceCard, { paddingTop: topPad + 16 }]}>
@@ -61,27 +68,11 @@ function BalanceCard({
             {displayName} <Text style={styles.welcomeWave}>👋</Text>
           </Text>
         </View>
-        <View style={styles.avatarMenuWrap}>
-          <Pressable onPress={() => setShowAvatarMenu((current) => !current)}>
-            <View style={styles.balanceAvatar}>
-              <Text style={styles.balanceAvatarText}>{avatarInitial}</Text>
-            </View>
-          </Pressable>
-          {showAvatarMenu ? (
-            <View style={styles.avatarMenu}>
-              <Pressable
-                style={styles.avatarMenuItem}
-                onPress={() => {
-                  setShowAvatarMenu(false);
-                  signOut();
-                }}
-              >
-                <Feather name="log-out" size={16} color={C.expense} />
-                <Text style={styles.avatarMenuText}>Logout</Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </View>
+        <Pressable onPress={() => { setAccountView('menu'); setShowAccountSheet(true); }}>
+          <View style={styles.balanceAvatar}>
+            <Text style={styles.balanceAvatarText}>{avatarInitial}</Text>
+          </View>
+        </Pressable>
       </View>
 
       <View style={styles.balanceCenter}>
@@ -110,6 +101,213 @@ function BalanceCard({
           </View>
         </View>
       </View>
+
+      {/* Account Management Sheet */}
+      <Modal
+        visible={showAccountSheet}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => { setShowAccountSheet(false); setAccountView('menu'); }}
+      >
+        <View style={[acctStyles.container, { backgroundColor: C.backgroundCard }]}>
+          <View style={[acctStyles.header, { borderBottomColor: C.border }]}>
+            {accountView !== 'menu' ? (
+              <Pressable onPress={() => setAccountView('menu')}>
+                <Feather name="arrow-left" size={22} color={C.text} />
+              </Pressable>
+            ) : (
+              <View style={{ width: 22 }} />
+            )}
+            <Text style={[acctStyles.headerTitle, { color: C.text }]}>
+              {accountView === 'menu' ? 'Account' : accountView === 'password' ? 'Change Password' : accountView === 'email' ? 'Change Email' : 'Delete Account'}
+            </Text>
+            <Pressable onPress={() => { setShowAccountSheet(false); setAccountView('menu'); }}>
+              <Feather name="x" size={22} color={C.textSecondary} />
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={acctStyles.content} keyboardShouldPersistTaps="handled">
+            {accountView === 'menu' && (
+              <>
+                <View style={acctStyles.avatarSection}>
+                  <View style={[acctStyles.avatarLg, { backgroundColor: C.tint }]}>
+                    <Text style={acctStyles.avatarLgText}>{avatarInitial}</Text>
+                  </View>
+                  <Text style={[acctStyles.avatarName, { color: C.text }]}>{displayName}</Text>
+                </View>
+
+                <Pressable
+                  onPress={() => { setNewPassword(''); setAccountView('password'); }}
+                  style={({ pressed }) => [acctStyles.menuRow, { backgroundColor: pressed ? C.backgroundSecondary : 'transparent' }]}
+                >
+                  <View style={[acctStyles.menuIcon, { backgroundColor: '#EFF6FF' }]}>
+                    <Feather name="lock" size={18} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[acctStyles.menuLabel, { color: C.text }]}>Change Password</Text>
+                    <Text style={[acctStyles.menuDesc, { color: C.textSecondary }]}>Update your account password</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={C.textTertiary} />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => { setNewEmail(''); setAccountView('email'); }}
+                  style={({ pressed }) => [acctStyles.menuRow, { backgroundColor: pressed ? C.backgroundSecondary : 'transparent' }]}
+                >
+                  <View style={[acctStyles.menuIcon, { backgroundColor: '#F0FDF4' }]}>
+                    <Feather name="mail" size={18} color="#16A34A" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[acctStyles.menuLabel, { color: C.text }]}>Change Email</Text>
+                    <Text style={[acctStyles.menuDesc, { color: C.textSecondary }]}>Update your email address</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={C.textTertiary} />
+                </Pressable>
+
+                <View style={[acctStyles.divider, { backgroundColor: C.borderLight }]} />
+
+                <Pressable
+                  onPress={() => setAccountView('delete')}
+                  style={({ pressed }) => [acctStyles.menuRow, { backgroundColor: pressed ? '#FEF2F2' : 'transparent' }]}
+                >
+                  <View style={[acctStyles.menuIcon, { backgroundColor: '#FEE2E2' }]}>
+                    <Feather name="user-x" size={18} color="#DC2626" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[acctStyles.menuLabel, { color: '#DC2626' }]}>Delete Account</Text>
+                    <Text style={[acctStyles.menuDesc, { color: C.textSecondary }]}>Permanently remove your account</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={C.textTertiary} />
+                </Pressable>
+
+                <View style={[acctStyles.divider, { backgroundColor: C.borderLight }]} />
+
+                <Pressable
+                  onPress={() => { setShowAccountSheet(false); signOut(); }}
+                  style={({ pressed }) => [acctStyles.menuRow, { backgroundColor: pressed ? C.backgroundSecondary : 'transparent' }]}
+                >
+                  <View style={[acctStyles.menuIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Feather name="log-out" size={18} color="#D97706" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[acctStyles.menuLabel, { color: C.text }]}>Sign Out</Text>
+                    <Text style={[acctStyles.menuDesc, { color: C.textSecondary }]}>Log out of your account</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={C.textTertiary} />
+                </Pressable>
+              </>
+            )}
+
+            {accountView === 'password' && (
+              <View style={acctStyles.formSection}>
+                <Text style={[acctStyles.formLabel, { color: C.textSecondary }]}>New Password</Text>
+                <TextInput
+                  style={[acctStyles.formInput, { borderColor: C.border, color: C.text, backgroundColor: C.backgroundSecondary }]}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="Enter new password"
+                  placeholderTextColor={C.textTertiary}
+                  secureTextEntry
+                />
+                <Pressable
+                  onPress={async () => {
+                    if (!newPassword || newPassword.length < 6) {
+                      Toast.show({ type: 'error', text1: 'Too Short', text2: 'Password must be at least 6 characters.' });
+                      return;
+                    }
+                    setAccountLoading(true);
+                    try {
+                      const { error } = await supabase.auth.updateUser({ password: newPassword });
+                      if (error) throw error;
+                      Toast.show({ type: 'success', text1: 'Password Updated', text2: 'Your password has been changed successfully.' });
+                      setAccountView('menu');
+                    } catch (err: any) {
+                      Toast.show({ type: 'error', text1: 'Update Failed', text2: err.message || 'Could not update password.' });
+                    } finally {
+                      setAccountLoading(false);
+                    }
+                  }}
+                  disabled={accountLoading || !newPassword}
+                  style={({ pressed }) => [acctStyles.formBtn, { opacity: accountLoading || !newPassword ? 0.6 : 1 }, pressed && { opacity: 0.8 }]}
+                >
+                  <Text style={acctStyles.formBtnText}>{accountLoading ? 'Saving...' : 'Update Password'}</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {accountView === 'email' && (
+              <View style={acctStyles.formSection}>
+                <Text style={[acctStyles.formLabel, { color: C.textSecondary }]}>New Email Address</Text>
+                <TextInput
+                  style={[acctStyles.formInput, { borderColor: C.border, color: C.text, backgroundColor: C.backgroundSecondary }]}
+                  value={newEmail}
+                  onChangeText={setNewEmail}
+                  placeholder="new@email.com"
+                  placeholderTextColor={C.textTertiary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  onPress={async () => {
+                    if (!newEmail || !newEmail.includes('@')) {
+                      Toast.show({ type: 'error', text1: 'Invalid Email', text2: 'Please enter a valid email address.' });
+                      return;
+                    }
+                    setAccountLoading(true);
+                    try {
+                      const { error } = await supabase.auth.updateUser({ email: newEmail });
+                      if (error) throw error;
+                      Toast.show({ type: 'success', text1: 'Verification Sent', text2: 'Check your new email to confirm the change.' });
+                      setAccountView('menu');
+                    } catch (err: any) {
+                      Toast.show({ type: 'error', text1: 'Update Failed', text2: err.message || 'Could not update email.' });
+                    } finally {
+                      setAccountLoading(false);
+                    }
+                  }}
+                  disabled={accountLoading || !newEmail}
+                  style={({ pressed }) => [acctStyles.formBtn, { backgroundColor: '#16A34A', opacity: accountLoading || !newEmail ? 0.6 : 1 }, pressed && { opacity: 0.8 }]}
+                >
+                  <Text style={acctStyles.formBtnText}>{accountLoading ? 'Saving...' : 'Update Email'}</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {accountView === 'delete' && (
+              <View style={acctStyles.formSection}>
+                <View style={acctStyles.deleteWarning}>
+                  <View style={acctStyles.deleteIconCircle}>
+                    <Feather name="alert-triangle" size={28} color="#fff" />
+                  </View>
+                  <Text style={[acctStyles.deleteTitle, { color: C.text }]}>This is permanent</Text>
+                  <Text style={[acctStyles.deleteDesc, { color: C.textSecondary }]}>
+                    Deleting your account will remove all your data, transactions, and goals forever. This cannot be undone.
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={async () => {
+                    setAccountLoading(true);
+                    try {
+                      Toast.show({ type: 'info', text1: 'Account Deletion', text2: 'Please contact support to complete account deletion.' });
+                      setShowAccountSheet(false);
+                      setAccountView('menu');
+                    } catch (err: any) {
+                      Toast.show({ type: 'error', text1: 'Error', text2: err.message || 'Something went wrong.' });
+                    } finally {
+                      setAccountLoading(false);
+                    }
+                  }}
+                  disabled={accountLoading}
+                  style={({ pressed }) => [acctStyles.deleteBtn, { opacity: accountLoading ? 0.6 : 1 }, pressed && { opacity: 0.85 }]}
+                >
+                  <Feather name="trash-2" size={16} color="#fff" />
+                  <Text style={acctStyles.deleteBtnText}>{accountLoading ? 'Processing...' : 'Delete My Account'}</Text>
+                </Pressable>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -495,4 +693,73 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+});
+
+const acctStyles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
+  content: { paddingVertical: 24 },
+  avatarSection: { alignItems: "center", paddingBottom: 32 },
+  avatarLg: {
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: "center", justifyContent: "center",
+  },
+  avatarLgText: { color: "#fff", fontSize: 30, fontFamily: "Inter_700Bold" },
+  avatarName: { fontSize: 20, fontFamily: "Inter_700Bold", marginTop: 14 },
+  menuRow: {
+    flexDirection: "row", alignItems: "center", gap: 16,
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderRadius: 12, marginHorizontal: 12,
+  },
+  menuIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+  },
+  menuLabel: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+  menuDesc: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  divider: { height: 1, marginHorizontal: 32, marginVertical: 12 },
+  formSection: { paddingHorizontal: 24, gap: 16 },
+  formLabel: {
+    fontSize: 13, fontFamily: "Inter_500Medium",
+    textTransform: "uppercase", letterSpacing: 0.5,
+  },
+  formInput: {
+    borderWidth: 1.5, borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 15, fontFamily: "Inter_400Regular",
+  },
+  formBtn: {
+    backgroundColor: "#3B82F6", borderRadius: 14,
+    paddingVertical: 14, alignItems: "center",
+    justifyContent: "center", marginTop: 8,
+  },
+  formBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  deleteWarning: { alignItems: "center", paddingVertical: 20, gap: 12 },
+  deleteIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: "#DC2626",
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#DC2626", shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35, shadowRadius: 12, elevation: 8,
+  },
+  deleteTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  deleteDesc: {
+    fontSize: 14, fontFamily: "Inter_400Regular",
+    textAlign: "center", lineHeight: 21, paddingHorizontal: 20,
+  },
+  deleteBtn: {
+    backgroundColor: "#DC2626", borderRadius: 14,
+    paddingVertical: 14, alignItems: "center",
+    justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 12,
+    shadowColor: "#DC2626", shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  deleteBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });
