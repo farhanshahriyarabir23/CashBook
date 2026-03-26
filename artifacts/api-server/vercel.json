@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "buildCommand": "pnpm exec tsc -b ../../lib/db ../../lib/api-zod . --pretty false",
   "rewrites": [
     {
       "source": "/(.*)",
