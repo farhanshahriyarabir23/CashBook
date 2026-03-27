@@ -1,24 +1,18 @@
 {
   "cli": {
     "version": ">= 18.0.6",
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
     "preview": {
-      "package": "artifacts/mobile",
       "distribution": "internal"
     },
     "production": {
-      "package": "artifacts/mobile",
-      "android": {
-        "buildType": "app-bundle"
-      }
-    },
-    "apk": {
-      "package": "artifacts/mobile",
-      "android": {
-        "buildType": "apk"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
