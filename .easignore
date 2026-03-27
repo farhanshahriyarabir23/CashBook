@@ -1,0 +1,11 @@
+# EAS Build ignore file
+# Exclude server-side code and development tools
+
+.claude/
+api/
+lib/
+scripts/
+supabase/
+.pnpm-store/
+.git/
+node_modules/

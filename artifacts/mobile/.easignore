@@ -1,0 +1,7 @@
+.eas-tmp
+.expo
+android/.gradle
+node_modules
+.git
+.claude
+supabase
