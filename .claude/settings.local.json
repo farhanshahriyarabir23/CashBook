@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\(JSON.parse\\(require\\(''fs''\\).readFileSync\\(''package.json'', ''utf8''\\)\\)\\)\")",
+      "Bash(node:*)",
+      "Bash(pnpm install:*)",
+      "Bash(git -C \"C:/Users/AbirPC/OneDrive/Desktop/Project/Student-Finance-Hub\" show HEAD:artifacts/mobile/package.json)",
+      "Bash(git:*)",
+      "Bash(\"C:/Users/AbirPC/OneDrive/Desktop/Project/Student-Finance-Hub/artifacts/mobile/package.json\":*)",
+      "Bash(cd:*)",
+      "Bash(pnpm exec:*)"
+    ]
+  }
+}
