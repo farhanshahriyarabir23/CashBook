@@ -205,9 +205,21 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    console.log("Font load status:", { fontsLoaded, fontError });
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(err => console.error("Splash hide error:", err));
     }
+  }, [fontsLoaded, fontError]);
+
+  // Safety timeout: Force hide splash after 10 seconds even if fonts don't load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!fontsLoaded && !fontError) {
+        console.warn("Force hiding splash screen after timeout (fonts may have failed to load)");
+        SplashScreen.hideAsync().catch(console.error);
+      }
+    }, 10000);
+    return () => clearTimeout(timer);
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;

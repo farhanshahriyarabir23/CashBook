@@ -44,7 +44,9 @@
     "extra": {
       "eas": {
         "projectId": "1efffe49-30a7-4f7a-a0fd-bd4321c460b2"
-      }
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "https://lsdmoshgskcacpfnngwy.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZG1vc2hnc2tjYWNwZm5uZ3d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MzU5NzksImV4cCI6MjA4MjMxMTk3OX0.58TKkGuSEQjKSmzS5GwaR4ZnYPaMXARSQvDtxqYWo0E"
     },
     "owner": "farhanshahriyarabir23"
   }
