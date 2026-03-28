@@ -3,5 +3,9 @@
 android/.gradle
 node_modules
 .git
-.claude
-supabase
+
+# Monorepo root ignores (EAS copies the whole workspace root)
+**/.pnpm-store
+**/.claude
+**/supabase
+**/api-server

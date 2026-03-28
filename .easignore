@@ -1,11 +1,23 @@
 # EAS Build ignore file
 # Exclude server-side code and development tools
 
-.claude/
-api/
-lib/
-scripts/
-supabase/
-.pnpm-store/
-.git/
-node_modules/
+.claude
+api
+lib
+scripts
+supabase
+node_modules
+.pnpm-store
+.expo
+.git
+android/.gradle
+artifacts/mobile/android/.gradle
+dist
+build
+**/.expo
+**/node_modules
+**/.pnpm-store
+supabase_backup
+**/supabase_backup
+**/api-server
+**/.replit-artifact

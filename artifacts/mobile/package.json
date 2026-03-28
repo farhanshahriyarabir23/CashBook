@@ -4,9 +4,9 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "pnpm exec expo start",
+    "dev": "npx expo start",
     "build": "node scripts/build.js",
-    "build:apk": "pnpm exec eas build -p android --profile preview",
+    "build:apk": "npx eas build -p android --profile preview",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android": "expo run:android",
@@ -53,7 +53,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@types/react": "catalog:",
-    "@types/react-dom": "catalog:"
+    "@types/react": "*",
+    "@types/react-dom": "*"
   }
 }
