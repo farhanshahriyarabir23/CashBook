@@ -13,7 +13,6 @@ A premium, full-stack personal finance mobile application meticulously crafted f
 ## 🛠 Tech Stack
 
 **Client Application:**
-
 - **Framework:** Expo (React Native)
 - **Language:** TypeScript
 - **State/Hooks:** Custom React Contexts (`AuthContext`, `FinanceContext`, `AppLockContext`)
@@ -21,7 +20,6 @@ A premium, full-stack personal finance mobile application meticulously crafted f
 - **Native Modules:** `expo-local-authentication`, `expo-print`, `expo-sharing`, `expo-haptics`
 
 **Server & Database:**
-
 - **Backend API:** Custom Express.js Server
 - **Database:** Supabase (PostgreSQL)
 - **ORM:** Drizzle ORM
@@ -30,7 +28,8 @@ A premium, full-stack personal finance mobile application meticulously crafted f
 
 ## 📁 Project Architecture
 
-- `/artifacts/mobile/` - The entire frontend Expo ecosystem (Screens, Modals, Shared Contexts).
+This project is structured as an npm workspace.
+- `/artifacts/mobile/` - The frontend Expo ecosystem (Screens, Modals, Shared Contexts).
 - `/artifacts/api-server/` - The backend Express server to handle complex data logic routines.
 - `/supabase/` - SQL configuration schema, initial migrations, and seed data scripts.
 
@@ -38,41 +37,46 @@ A premium, full-stack personal finance mobile application meticulously crafted f
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
-- [pnpm](https://pnpm.io/) package manager
+- [Node.js](https://nodejs.org/) (v20+)
+- npm package manager (included with Node.js)
 - Expo Go app on your physical device, or an iOS/Android simulator.
 - A configured Supabase project (for both Auth & DB).
 
 ### Installation
 
 1. **Clone the repository:**
-   \`\`\`bash
+   ```bash
    git clone https://github.com/farhanshahriyar/CashBook.git
    cd CashBook
-   \`\`\`
+   ```
 
 2. **Install global workspace dependencies:**
-   \`\`\`bash
-   pnpm install
-   \`\`\`
+   ```bash
+   npm install
+   ```
 
 3. **Configure Environment Variables:**
-   - Navigate to `/artifacts/mobile/` and copy the example environment configuration into a new `.env` file.
-   - Insert your `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+   - Copy the `.env.example` files to `.env` in the root and workspace directories.
+   - Update them with your Supabase credentials:
+     - `EXPO_PUBLIC_SUPABASE_URL`
+     - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+     - `DATABASE_URL` (for the API server, if applicable)
 
-### Running Locally
+### 🏃‍♂️ Running Locally
 
-**Start the Native Client:**
-\`\`\`bash
-cd artifacts/mobile
-npx expo start
-\`\`\`
+The project is configured so you can run the mobile app and the API server separately from the root directory using npm scripts.
 
-**Start the API Server (optional, for custom Vercel routes):**
-\`\`\`bash
-cd artifacts/api-server
-pnpm run dev
-\`\`\`
+**Start the API Server (runs on port 3000):**
+```bash
+npm run dev:api
+```
+
+**Start the Mobile App (Expo, runs on port 8081):**
+```bash
+npm run dev:mobile
+```
+
+*Note: Make sure your `api-server` is running in a separate terminal so the mobile app can communicate with it.*
 
 ## 🔒 Security
 

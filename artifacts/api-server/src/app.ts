@@ -39,7 +39,7 @@ app.use(
 );
 
 // Explicitly handle preflight so Vercel never returns 405 for OPTIONS
-app.options("*", cors());
+app.options(/(.*)/, cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
