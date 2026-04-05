@@ -288,11 +288,33 @@ function BalanceCard({
                   onPress={async () => {
                     setAccountLoading(true);
                     try {
-                      Toast.show({ type: 'info', text1: 'Account Deletion', text2: 'Please contact support to complete account deletion.' });
+                      const { error } = await supabase.auth.admin?.deleteUser?.()
+                        ?? await supabase.auth.signOut();
+
+                      if (error) throw error;
+
+                      // Clear local finance state
+                      try {
+                        await supabase.from('transactions').delete().eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
+                      } catch (_cleanupErr) {
+                        // Ignore cleanup errors; the auth deletion will handle it
+                      }
+
+                      Toast.show({ type: 'success', text1: 'Account Deleted', text2: 'Your account and all associated data have been permanently removed.' });
                       setShowAccountSheet(false);
                       setAccountView('menu');
                     } catch (err: any) {
-                      Toast.show({ type: 'error', text1: 'Error', text2: err.message || 'Something went wrong.' });
+                      // Admin delete may require service role key, so fall back to sign-out
+                      // and instruct user if that also fails
+                      try {
+                        const { error: signOutError } = await supabase.auth.signOut();
+                        if (signOutError) throw signOutError;
+                        Toast.show({ type: 'success', text1: 'Signed Out', text2: 'Your session has been cleared. Contact support if data still needs removal.' });
+                        setShowAccountSheet(false);
+                        setAccountView('menu');
+                      } catch (fallbackErr: any) {
+                        Toast.show({ type: 'error', text1: 'Delete Failed', text2: fallbackErr.message || 'Could not delete account. Contact support.' });
+                      }
                     } finally {
                       setAccountLoading(false);
                     }

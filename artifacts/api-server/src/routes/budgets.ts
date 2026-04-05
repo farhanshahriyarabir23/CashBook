@@ -30,12 +30,34 @@ router.post("/", async (req, res) => {
   try {
     const { category, limit, spent, color } = req.body;
 
+    if (!category || typeof category !== "string" || category.trim().length === 0) {
+      res.status(400).json({ error: "category is required and must be a non-empty string." });
+      return;
+    }
+
+    const parsedLimit = Number(limit);
+    if (!Number.isFinite(parsedLimit) || parsedLimit < 0) {
+      res.status(400).json({ error: "Invalid limit. Must be a non-negative number." });
+      return;
+    }
+
+    const parsedSpent = spent !== undefined ? Number(spent) : 0;
+    if (!Number.isFinite(parsedSpent) || parsedSpent < 0) {
+      res.status(400).json({ error: "Invalid spent. Must be a non-negative number." });
+      return;
+    }
+
+    if (!color || typeof color !== "string" || color.trim().length === 0) {
+      res.status(400).json({ error: "color is required and must be a non-empty string." });
+      return;
+    }
+
     const [budget] = await db
       .insert(budgetsTable)
       .values({
         category,
-        limitAmount: String(limit),
-        spent: String(spent || 0),
+        limitAmount: String(parsedLimit),
+        spent: String(parsedSpent),
         color,
       })
       .returning();
@@ -64,6 +86,11 @@ router.put("/:id", async (req, res) => {
       .set({ spent: String(spent), updatedAt: new Date() })
       .where(eq(budgetsTable.id, id))
       .returning();
+
+    if (!budget) {
+      res.status(404).json({ error: "Budget not found" });
+      return;
+    }
 
     res.json({
       id: budget.id,

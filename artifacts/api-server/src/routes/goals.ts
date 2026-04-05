@@ -32,12 +32,18 @@ router.post("/", async (req, res) => {
   try {
     const { title, targetAmount, savedAmount, deadline, emoji, color } = req.body;
 
+    const parsedDate = new Date(deadline);
+    if (Number.isNaN(parsedDate.getTime())) {
+      res.status(400).json({ error: "Invalid date format." });
+      return;
+    }
+
     // Validate input
     const parsed = insertSavingGoalSchema.safeParse({
       title,
       targetAmount: String(targetAmount),
       savedAmount: String(savedAmount || 0),
-      deadline: new Date(deadline),
+      deadline: parsedDate,
       emoji,
       color,
     });
@@ -78,7 +84,14 @@ router.put("/:id", async (req, res) => {
     if (title !== undefined) updateSet.title = title;
     if (targetAmount !== undefined) updateSet.targetAmount = String(targetAmount);
     if (savedAmount !== undefined) updateSet.savedAmount = String(savedAmount);
-    if (deadline !== undefined) updateSet.deadline = new Date(deadline);
+    if (deadline !== undefined) {
+      const parsedDeadline = new Date(deadline);
+      if (Number.isNaN(parsedDeadline.getTime())) {
+        res.status(400).json({ error: "Invalid date format." });
+        return;
+      }
+      updateSet.deadline = parsedDeadline;
+    }
     if (emoji !== undefined) updateSet.emoji = emoji;
     if (color !== undefined) updateSet.color = color;
 

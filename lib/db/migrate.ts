@@ -19,54 +19,77 @@ const pool = new Pool({ connectionString: url });
 async function main() {
   const client = await pool.connect();
   try {
-    // Drop existing tables that have wrong schema
-    await client.query(`DROP TABLE IF EXISTS transactions CASCADE;`);
-    await client.query(`DROP TABLE IF EXISTS budgets CASCADE;`);
-    await client.query(`DROP TABLE IF EXISTS saving_goals CASCADE;`);
-    console.log("🗑️  Dropped existing tables");
-
-    await client.query(`
-      CREATE TABLE transactions (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        title TEXT NOT NULL,
-        amount NUMERIC(12,2) NOT NULL,
-        type TEXT NOT NULL,
-        category TEXT NOT NULL,
-        date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        note TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
+    // Check if tables already exist before dropping them
+    const { rows: existingTables } = await client.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name IN ('transactions', 'budgets', 'saving_goals')
     `);
-    console.log("✅ transactions table created");
 
-    await client.query(`
-      CREATE TABLE budgets (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        category TEXT NOT NULL UNIQUE,
-        limit_amount NUMERIC(12,2) NOT NULL,
-        spent NUMERIC(12,2) NOT NULL DEFAULT 0,
-        color TEXT NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-    console.log("✅ budgets table created");
+    const tableNames = existingTables.map((r) => r.table_name);
 
-    await client.query(`
-      CREATE TABLE saving_goals (
-        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-        title TEXT NOT NULL,
-        target_amount NUMERIC(12,2) NOT NULL,
-        saved_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-        deadline TIMESTAMPTZ NOT NULL,
-        emoji TEXT NOT NULL,
-        color TEXT NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-    console.log("✅ saving_goals table created");
+    if (tableNames.length > 0) {
+      console.log("\n ⚠️  The following tables already exist and will be preserved:");
+      tableNames.forEach((name) => console.log(`    - ${name}`));
+      console.log("\n If you want to reset the schema, please confirm you've backed up your data.\n");
+    } else {
+      console.log("✅  No existing tables found — creating fresh tables");
+    }
+
+    // Only create tables that don't exist
+    if (!tableNames.includes("transactions")) {
+      await client.query(`
+        CREATE TABLE transactions (
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          title TEXT NOT NULL,
+          amount NUMERIC(12,2) NOT NULL,
+          type TEXT NOT NULL,
+          category TEXT NOT NULL,
+          date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          note TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+      console.log("✅ transactions table created");
+    } else {
+      console.log("⏭️  transactions table already exists, skipping");
+    }
+
+    if (!tableNames.includes("budgets")) {
+      await client.query(`
+        CREATE TABLE budgets (
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          category TEXT NOT NULL UNIQUE,
+          limit_amount NUMERIC(12,2) NOT NULL,
+          spent NUMERIC(12,2) NOT NULL DEFAULT 0,
+          color TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+      console.log("✅ budgets table created");
+    } else {
+      console.log("⏭️  budgets table already exists, skipping");
+    }
+
+    if (!tableNames.includes("saving_goals")) {
+      await client.query(`
+        CREATE TABLE saving_goals (
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          title TEXT NOT NULL,
+          target_amount NUMERIC(12,2) NOT NULL,
+          saved_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+          deadline TIMESTAMPTZ NOT NULL,
+          emoji TEXT NOT NULL,
+          color TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+      console.log("✅ saving_goals table created");
+    } else {
+      console.log("⏭️  saving_goals table already exists, skipping");
+    }
 
     // Seed default budgets
     await client.query(`
