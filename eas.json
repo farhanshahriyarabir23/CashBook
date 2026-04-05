@@ -2,7 +2,7 @@
   "monorepo": true,
   "cli": {
     "version": ">= 18.0.6",
-    "appVersionSource": "local",
+     "appVersionSource": "remote",
     "requireCommit": false
   },
   "build": {
