@@ -1,0 +1,17 @@
+name: EAS Build Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+jobs:
+  build_android:
+    name: Build Android App
+    type: build
+    params:
+      platform: android
+      # Dynamically choose profile based on the branch
+      profile: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
