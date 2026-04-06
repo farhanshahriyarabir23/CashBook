@@ -3,7 +3,7 @@ name: EAS Build Workflow
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     types: [opened, synchronize, labeled]
 
@@ -14,4 +14,4 @@ jobs:
     params:
       platform: android
       # Dynamically choose profile based on the branch
-      profile: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+      profile: ${{ github.ref_name == 'master' && 'production' || 'preview' }}

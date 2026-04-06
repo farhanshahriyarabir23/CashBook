@@ -15,7 +15,7 @@
     "production": {
       "package": "artifacts/mobile",
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "apk"
       }
     },
     "apk": {
